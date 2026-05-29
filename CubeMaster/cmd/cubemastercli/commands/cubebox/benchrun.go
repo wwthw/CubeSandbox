@@ -97,7 +97,7 @@ var MultiRun = cli.Command{
 		&cli.StringFlag{
 			Name:  "biztype",
 			Value: "all",
-			Usage: "bussiness type,default is all,[all/sh/shtcb/gz/bj]",
+			Usage: "business type,default is all,[all/sh/shtcb/gz/bj]",
 		},
 		&cli.BoolFlag{
 			Name:  "testmultireq",
