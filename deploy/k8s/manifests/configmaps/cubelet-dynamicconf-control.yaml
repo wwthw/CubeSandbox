@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cubelet-dynamicconf-control
+  namespace: cube-system
+data:
+  conf.yaml: |
+    common:
+      enable_pf_mode: false
+      sandbox_exec_cmd_time_out: 5s
+      enable_sandbox_exec_cmd_before_exist: false
+      sandbox_exec_cmd_before_exist_log_out: false
+      sandbox_exec_cmd_before_exist:
+       - sh 
+       - "/usr/local/cubetools/cube_exec_cmd_before_exist.sh"
+      cgroup_set_memory_reparent_file: ""
+      disable_host_cgroup: true
+      disable_host_netfile: true
+      default_dns_servers:
+        - 169.254.254.53
+    
+    host:
+      scheduler_label: "default-cluster"
+      quota:
+        mcpu_limit: 
+        mem_limit: ""
+        mvm_limit: 100
+        creation_concurrent_num: 10
+      gc:
+        code_expiration_time: "72h"
+        image_expiration_time: "24h"
+    
+    meta_server_config:
+      meta_server_endpoint: "cubemaster.cube-system.svc.cluster.local:8089"
+      node_status_max_images: 40000

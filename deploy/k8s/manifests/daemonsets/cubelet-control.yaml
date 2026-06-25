@@ -1,0 +1,192 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cubelet-control
+  namespace: cube-system
+  labels:
+    app: cubelet-control
+    cube-role: control
+spec:
+  selector:
+    matchLabels:
+      app: cubelet-control
+  template:
+    metadata:
+      labels:
+        app: cubelet-control
+        cube-role: control
+    spec:
+      nodeSelector:
+        cube-role: control
+      containers:
+      # container 1: network-agent
+      - name: network-agent
+        image: cube-sandbox/cubelet-network-agent:latest
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+        ports:
+        - containerPort: 19090
+          name: health
+          hostPort: 19090
+        env:
+        - name: NETWORK_AGENT_BIN
+          value: "/usr/local/services/cubetoolbox/network-agent/bin/network-agent"
+        - name: CUBELET_CONFIG
+          value: "/usr/local/services/cubetoolbox/Cubelet/config/config.toml"
+        - name: GRPC_LISTEN
+          value: "unix:///tmp/cube/network-agent-grpc.sock"
+        - name: TAP_FD_LISTEN
+          value: "unix:///tmp/cube/network-agent-tap.sock"
+        - name: STATE_DIR
+          value: "/var/lib/network-agent/state"
+        - name: HEALTH_LISTEN
+          value: "127.0.0.1:19090"
+        command:
+        - /usr/local/bin/start-network-agent.sh
+        volumeMounts:
+        - name: tmp-cube
+          mountPath: /tmp/cube
+        - name: cubelet-config
+          mountPath: /usr/local/services/cubetoolbox/Cubelet/config
+        - name: network-agent-state
+          mountPath: /usr/local/services/cubetoolbox/network-agent/state
+        - name: network-agent-logs
+          mountPath: /data/log/network-agent
+        - name: dev-net-tun
+          mountPath: /dev/net/tun
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+      
+       # container 2: cubelet (dependency network-agent)
+      - name: cubelet
+        image: cube-sandbox/cubelet-network-agent:0.0.2
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+        env:
+        - name: CUBELET_BIN
+          value: "/usr/local/services/cubetoolbox/Cubelet/bin/cubelet"
+        - name: CUBELET_CONFIG
+          value: "/usr/local/services/cubetoolbox/Cubelet/config/config.toml"
+        - name: DYNAMIC_CONF
+          value: "/usr/local/services/cubetoolbox/Cubelet/dynamicconf/conf.yaml"
+        - name: NETWORK_AGENT_SOCKET
+          value: "/tmp/cube/network-agent-grpc.sock"
+        - name: NETWORK_AGENT_HEALTH
+          value: "127.0.0.1:19090"
+        command:
+        - /usr/local/bin/start-cubelet.sh
+        volumeMounts:
+        - name: tmp-cube
+          mountPath: /tmp/cube
+        - name: cubelet-config
+          mountPath: /usr/local/services/cubetoolbox/Cubelet/config
+        - name: cubelet-dynamicconf
+          mountPath: /usr/local/services/cubetoolbox/Cubelet/dynamicconf
+        - name: cubelet-data
+          mountPath: /data/cubelet
+        - name: dev-kvm
+          mountPath: /dev/kvm
+        - name: dev-net-tun
+          mountPath: /dev/net/tun
+        - name: cubelet-logs
+          mountPath: /data/log/Cubelet
+        - name: cube-shim-logs
+          mountPath: /data/log/CubeShim
+        - name: cube-vmm-logs
+          mountPath: /data/log/CubeVmm
+        - name: cube-shim-disks
+          mountPath: /data/cube-shim/disks
+        - name: cube-snapshot-disks
+          mountPath: /data/snapshot_pack/disks
+        - name: run-cube-containers
+          mountPath: /run/cube-containers
+        # VM assets
+        - name: cube-kernel-scf
+          mountPath: /usr/local/services/cubetoolbox/cube-kernel-scf
+        - name: cube-image
+          mountPath: /usr/local/services/cubetoolbox/cube-image
+        resources:
+          limits:
+            cpu: "4"
+            memory: "8Gi"
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+      
+      volumes:
+      - name: tmp-cube
+        hostPath:
+          path: /tmp/cube
+          type: DirectoryOrCreate
+      - name: cubelet-config
+        configMap:
+          name: cubelet-config
+          items:
+          - key: config.toml
+            path: config.toml
+      - name: cubelet-dynamicconf
+        configMap:
+          name: cubelet-dynamicconf-control
+          items:
+          - key: conf.yaml
+            path: conf.yaml
+      - name: cubelet-data
+        hostPath:
+          path: /data/cubelet
+          type: DirectoryOrCreate
+      - name: network-agent-state
+        hostPath:
+          path: /usr/local/services/cubetoolbox/network-agent/state
+          type: DirectoryOrCreate
+      - name: dev-kvm
+        hostPath:
+          path: /dev/kvm
+      - name: dev-net-tun
+        hostPath:
+          path: /dev/net/tun
+      - name: cubelet-logs
+        hostPath:
+          path: /data/log/Cubelet
+          type: DirectoryOrCreate
+      - name: network-agent-logs
+        hostPath:
+          path: /data/log/network-agent
+          type: DirectoryOrCreate
+      - name: cube-shim-logs
+        hostPath:
+          path: /data/log/CubeShim
+          type: DirectoryOrCreate
+      - name: cube-vmm-logs
+        hostPath:
+          path: /data/log/CubeVmm
+          type: DirectoryOrCreate
+      - name: cube-shim-disks
+        hostPath:
+          path: /data/cube-shim/disks
+          type: DirectoryOrCreate
+      - name: cube-snapshot-disks
+        hostPath:
+          path: /data/snapshot_pack/disks
+          type: DirectoryOrCreate
+      - name: run-cube-containers
+        hostPath:
+          path: /run/cube-containers
+          type: DirectoryOrCreate
+      # VM assets
+      - name: cube-kernel-scf
+        hostPath:
+          path: /usr/local/services/cubetoolbox/cube-kernel-scf
+          type: Directory
+      - name: cube-image
+        hostPath:
+          path: /usr/local/services/cubetoolbox/cube-image
+          type: Directory
+      
+      priorityClassName: system-node-critical
