@@ -1,0 +1,42 @@
+---
+# Source: cubesandbox/templates/pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cubesandbox-mysql-pv
+  labels:
+    helm.sh/chart: cubesandbox-1.0.0
+    app.kubernetes.io/name: cubesandbox
+    app.kubernetes.io/instance: cubesandbox
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    component: mysql
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mnt/data/mysql
+---
+# Source: cubesandbox/templates/pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cubesandbox-redis-pv
+  labels:
+    helm.sh/chart: cubesandbox-1.0.0
+    app.kubernetes.io/name: cubesandbox
+    app.kubernetes.io/instance: cubesandbox
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    component: redis
+spec:
+  capacity:
+    storage: 50Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mnt/data/redis

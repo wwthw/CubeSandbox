@@ -1,0 +1,27 @@
+apiVersion: v1  
+kind: PersistentVolume  
+metadata:  
+  name: cubemaster-storage-pv-new  
+spec:  
+  capacity:  
+    storage: 50Gi  
+  accessModes:  
+    - ReadWriteOnce  
+  persistentVolumeReclaimPolicy: Retain  
+  storageClassName: openclaw-disk-sc  
+  hostPath:  
+    path: /data/cubemaster-storage-new
+---  
+apiVersion: v1  
+kind: PersistentVolumeClaim  
+metadata:  
+  name: cubemaster-storage-pvc-new  
+  namespace: cube-system  
+spec:  
+  accessModes:  
+    - ReadWriteOnce  
+  resources:  
+    requests:  
+      storage: 50Gi  
+  storageClassName: openclaw-disk-sc  
+  volumeName: cubemaster-storage-pv-new

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cubeproxy-global-conf
+  namespace: cube-system
+data:
+  global.conf: |
+    # CubeProxy Redis Configuration
+    set $redis_ip "redis.cube-system.svc.cluster.local";
+    set $redis_port "6379";
+    set $redis_pd "ceuhvu123";
+    set $redis_index 0;
+    
+    # Cache timeout (milliseconds)
+    set $timeout_min 500;
+    set $timeout_max 700;
+    
+    # Proxy host IP (cubeapi service IP)
+    set $cube_proxy_host_ip "cubeproxy.cube-system.svc.cluster.local";
