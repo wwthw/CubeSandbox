@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cubeproxy
+  namespace: cube-system
+  labels:
+    app: cubeproxy
+    cube-role: control
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cubeproxy
+  template:
+    metadata:
+      labels:
+        app: cubeproxy
+        cube-role: control
+    spec:
+      #hostNetwork: true
+      #hostPID: true
+      serviceAccountName: cubesandbox
+      nodeSelector:
+        cube-role: control
+      
+      containers:
+      - name: cubeproxy
+        image: cubeproxy:0.3.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 443
+          #hostPort: 443
+          name: https-proxy
+        - containerPort: 80
+          #hostPort: 80
+          name: http-proxy
+        env:
+        - name: CUBE_MASTER_URL
+          value: 'http://cubemaster:8089'
+        command:
+        - /usr/local/openresty/nginx/sbin/start.sh
+        volumeMounts:
+        - name: cubeproxy-logs
+          mountPath: /data/log/cube-proxy
+        - name: cubeproxy-certs
+          mountPath: /usr/local/openresty/nginx/certs
+          readOnly: true
+        - name: cubeproxy-global-conf
+          mountPath: /usr/local/openresty/nginx/conf/global/global.conf
+          subPath: global.conf
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          timeoutSeconds: 3
+        readinessProbe:
+          tcpSocket:
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+      
+      volumes:
+      - name: cubeproxy-logs
+        hostPath:
+          path: /data/log/cube-proxy
+          type: DirectoryOrCreate
+      - name: cubeproxy-certs
+        secret:
+          secretName: cubeproxy-certs
+          items:
+            - key: tls.crt
+              path: cube.app+3.pem
+            - key: tls.key
+              path: cube.app+3-key.pem
+      - name: cubeproxy-global-conf
+        configMap:
+          name: cubeproxy-global-conf
+          items:
+          - key: global.conf
+            path: global.conf
+      
+      priorityClassName: system-node-critical

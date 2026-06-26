@@ -1,0 +1,84 @@
+apiVersion: apps/v1  
+kind: Deployment  
+metadata:  
+  name: cubemaster  
+  namespace: cube-system  
+  labels:  
+    app: cubemaster  
+    cube-role: control  
+spec:  
+  replicas: 1  
+  selector:  
+    matchLabels:  
+      app: cubemaster  
+  template:  
+    metadata:  
+      labels:  
+        app: cubemaster  
+        cube-role: control  
+    spec:  
+      serviceAccountName: cubesandbox  
+      nodeSelector:  
+        cube-role: control  
+      containers:  
+      - name: cubemaster  
+        image: cubemaster:0.3.1  
+        imagePullPolicy: IfNotPresent  
+        ports:  
+        - containerPort: 8089  
+          name: http  
+          hostPort: 8089  
+        env:  
+        - name: CUBE_MASTER_CONFIG_PATH  
+          value: "/app/conf/conf.yaml"  
+        volumeMounts:  
+        - name: cubemaster-config  
+          mountPath: /app/conf/conf.yaml  
+          subPath: conf.yaml  
+        - name: cubemaster-logs  
+          mountPath: /data/log/CubeMaster-dev
+        - name: cubemaster-storage
+          mountPath: /data/CubeMaster/storage  
+        - name: docker-sock  
+          mountPath: /var/run/docker.sock  
+        command: ["/bin/sh", "-c"]  
+        args:  
+          - |  
+            cubemaster&  
+            wait  
+        resources:  
+          limits:  
+            cpu: "2"  
+            memory: "4Gi"  
+          requests:  
+            cpu: "1"  
+            memory: "2Gi"  
+      volumes:  
+      - name: cubemaster-config  
+        configMap:  
+          name: cubemaster-config  
+      - name: cubemaster-logs  
+        hostPath:  
+          path: /data/log/CubeMaster-dev  
+      - name: cubemaster-storage
+        persistentVolumeClaim:  
+          claimName: cubemaster-storage-pvc-new 
+      - name: docker-sock  
+        hostPath:  
+          path: /var/run/docker.sock  
+          type: Socket  
+      priorityClassName: system-node-critical  
+---  
+# PVC 
+apiVersion: v1  
+kind: PersistentVolumeClaim  
+metadata:  
+  name: cubemaster-storage-pvc  
+  namespace: cube-system  
+spec:  
+  accessModes:  
+    - ReadWriteOnce  
+  resources:  
+    requests:  
+      storage: 100Gi
+  storageClassName: standard

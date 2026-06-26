@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cubeapi
+  namespace: cube-system
+  labels:
+    app: cubeapi
+    cube-role: control
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cubeapi
+  template:
+    metadata:
+      labels:
+        app: cubeapi
+        cube-role: control
+    spec:
+      serviceAccountName: cubesandbox
+      nodeSelector:
+        cube-role: control
+      containers:
+      - name: cubeapi
+        image: cubeapi:0.3.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: CUBEAPI_BIN
+          value: "/usr/local/bin/cube-api"
+        - name: CUBE_MASTER_ADDR
+          value: "http://cubemaster.cube-system.svc.cluster.local:8089"
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          /usr/local/bin/cube-api --cubemaster-url http://cubemaster.cube-system.svc.cluster.local:8089 &
+          
+          wait
+        volumeMounts:
+        - name: cubeapi-logs
+          mountPath: /data/log/CubeAPI
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+      volumes:
+      - name: cubeapi-logs
+        hostPath:
+          path: /data/log/CubeAPI
+          type: DirectoryOrCreate
+      priorityClassName: system-node-critical

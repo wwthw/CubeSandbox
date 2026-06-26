@@ -1,0 +1,68 @@
+---  
+# Source: cubesandbox/templates/configmap-coredns.yaml  
+apiVersion: v1  
+kind: ConfigMap  
+metadata:  
+  name: cubesandbox-coredns-config  
+  namespace: cube-system  
+data:  
+  Corefile: |  
+    .:53 {  
+        errors  
+        health :5180  
+        ready  
+        template IN A {
+            match "^.*\.cube\.app\.$"
+            answer "{{ .Name }} 60 IN A 10.110.38.229"
+        }
+        template IN AAAA {
+            match "^.*\.cube\.app\.$"
+            answer "{{ .Name }} 60 IN AAAA ::1"
+        }
+        forward . /etc/resolv.conf  
+        log  
+        cache 30  
+        reload  
+    }  
+---  
+# Source: cubesandbox/templates/configmap.yaml  
+apiVersion: v1  
+kind: ConfigMap  
+metadata:  
+  name: cubesandbox-config  
+  namespace: cube-system  
+data:  
+  config.yaml: |  
+    common:  
+      http_port: 8089  
+      http_readtimeout: 120  
+      http_writetimeout: 360  
+      http_idletimeout: 360  
+    log:  
+      module: "cubemaster"  
+      path: "/data/log/cubemaster"  
+      level: "debug"  
+    ossdb_config:  
+      addr: "mysql.cube-system.svc.cluster.local:3306"  
+      user: "cube"  
+      pwd: "cube_pass"  
+      db_name: "cube_mvp"  
+    redis:  
+      nodes: "redis.cube-system.svc.cluster.local:6379"  
+      password: "ceuhvu123"  
+      db_no: 0  
+  cubelet.yaml: |  
+    common:  
+      common_timeout: "10s"  
+      enable_network_agent: true   
+      network_agent_endpoint: "grpc+unix:///tmp/cube/network-agent-grpc.sock"  
+    host:  
+      scheduler_label: "default-cluster"  
+  global.conf: |  
+    set $redis_ip "redis.cube-system.svc.cluster.local";  
+    set $redis_port "6379";  
+    set $redis_pd "ceuhvu123";
+    set $redis_index 0;  
+    set $cube_proxy_host_ip "10.110.8.57";
+    set $timeout_min 500;
+    set $timeout_max 700;
